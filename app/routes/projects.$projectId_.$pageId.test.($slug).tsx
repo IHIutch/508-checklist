@@ -5,7 +5,7 @@ import * as React from 'react'
 import invariant from "tiny-invariant";
 import { Button } from "~/ui/button";
 import { prisma } from "~/utils/prisma.server";
-import { Result, Test } from "@prisma/client";
+import { type Result, type Test } from "@prisma/client";
 import { getPost, getPosts } from "~/utils/get-posts.server";
 
 export const loader = async ({ params }: LoaderFunctionArgs) => {
