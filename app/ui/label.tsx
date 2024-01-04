@@ -1,4 +1,4 @@
-'use client'
+
 
 import { Label, type LabelProps } from 'react-aria-components'
 

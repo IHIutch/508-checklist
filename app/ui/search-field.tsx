@@ -1,4 +1,4 @@
-'use client'
+
 
 import { X } from 'lucide-react'
 import { SearchField, type SearchFieldProps } from 'react-aria-components'
