@@ -23,22 +23,24 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     throw new Response("Not Found", { status: 404 });
   }
 
-  const result = await getPost(post.path)
+  const [postContent, results, tests] = await Promise.all([
+    getPost(post.path),
+    prisma.result.findMany({
+      where: {
+        pageId: Number(params.pageId)
+      },
+      distinct: 'testId',
+      orderBy: {
+        id: 'desc',
+      },
+    }),
+    prisma.test.findMany()
+  ])
+
+
   const startingSlug = params.slug.split('-')[0]
-
-  const results = await prisma.result.findMany({
-    where: {
-      pageId: Number(params.pageId)
-    },
-    distinct: 'testId',
-    orderBy: {
-      id: 'desc',
-    },
-  })
-  const tests = await prisma.test.findMany()
-
   return json({
-    mdxString: result.code,
+    mdxString: postContent.code,
     results,
     tests: tests.filter(test => {
       const startingName = test.name.split('.')[0]
