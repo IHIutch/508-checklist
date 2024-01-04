@@ -2,6 +2,7 @@ import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Link, Outlet, json, useLoaderData } from "@remix-run/react";
 import GithubSlugger from 'github-slugger'
 import invariant from "tiny-invariant";
+import { getPosts } from "~/utils/get-posts.server";
 
 interface ContentGlob {
   [path: string]: { frontmatter: Record<string, unknown> };
@@ -12,13 +13,13 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
   invariant(params.pageId, "params.pageId is required");
 
   const slugger = new GithubSlugger()
-  const contentGlob: ContentGlob = import.meta.glob("./../content/*.mdx", { eager: true });
+  const posts = await getPosts()
   return json({
-    links: await Promise.all(Object.keys(contentGlob).map((path) => ({
-      title: String(contentGlob[path]?.frontmatter?.title || ''),
-      order: Number(contentGlob[path]?.frontmatter?.order || 1000),
-      slug: slugger.slug(String(contentGlob[path]?.frontmatter?.title || ''))
-    })))
+    links: posts.map((p) => ({
+      title: String(p?.frontmatter?.title || ''),
+      order: Number(p?.frontmatter?.order || 1000),
+      slug: slugger.slug(String(p?.frontmatter?.title || ''))
+    }))
   })
 }
 

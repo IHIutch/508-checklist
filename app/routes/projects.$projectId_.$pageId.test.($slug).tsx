@@ -1,20 +1,12 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect, useFetcher, useLoaderData } from "@remix-run/react";
-import { getMDXComponent } from 'mdx-bundler/client'
-import { bundleMDX } from 'mdx-bundler'
+import { getMDXComponent } from 'mdx-bundler/client/index.js'
 import * as React from 'react'
-import GithubSlugger from 'github-slugger'
 import invariant from "tiny-invariant";
-import fs from 'node:fs/promises'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { Button } from "~/ui/button";
 import { prisma } from "~/utils/prisma.server";
 import { Result, Test } from "@prisma/client";
-
-interface ContentGlob {
-  [path: string]: { frontmatter: Record<string, unknown> };
-}
+import { getPost, getPosts } from "~/utils/get-posts.server";
 
 export const loader = async ({ params }: LoaderFunctionArgs) => {
   invariant(params.projectId, "params.projectId is required");
@@ -24,27 +16,14 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     return redirect(`/projects/${params.projectId}/${params.pageId}/test/introduction`)
   }
 
-  const slugger = new GithubSlugger()
-  const contentGlob: ContentGlob = import.meta.glob("./../content/*.mdx", { eager: true });
-
-  const posts = await Promise.all(Object.keys(contentGlob).map((path) => ({
-    path,
-    slug: slugger.slug(String(contentGlob[path]?.frontmatter?.title || ''))
-  })))
+  const posts = await getPosts()
 
   const post = posts.find(c => c.slug === params.slug)
   if (!post) {
     throw new Response("Not Found", { status: 404 });
   }
 
-  const __dirname = path.dirname(fileURLToPath(import.meta.url))
-  const filePath = path.join(__dirname, '..', 'content', post.path)
-  const content = await fs.readFile(filePath, { encoding: 'utf-8' })
-
-  const result = await bundleMDX({
-    source: content.toString()
-  })
-
+  const result = await getPost(post.path)
   const startingSlug = params.slug.split('-')[0]
 
   const results = await prisma.result.findMany({
@@ -68,13 +47,10 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
   })
 }
 
-export default function Test() {
+export default function TestPage() {
 
   const { mdxString, results, tests } = useLoaderData<typeof loader>();
   const Component = React.useMemo(() => getMDXComponent(mdxString), [mdxString])
-
-  console.log({ results, tests })
-
 
   return (
     <div className="flex">
@@ -138,9 +114,6 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const testId = formData.get("testId");
   const value = formData.get("value");
-
-  // console.log({ testId, value })
-  // return json({})
 
   const data = await prisma.result.create({
     data: {
