@@ -16,7 +16,9 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     return redirect(`/projects/${params.projectId}/${params.pageId}/test/introduction`)
   }
 
+  console.time('getPosts1')
   const posts = await getPosts()
+  console.timeEnd('getPosts1')
 
   const post = posts.find(c => c.slug === params.slug)
   if (!post) {

@@ -83,19 +83,19 @@ export const getPosts = async () => {
   const contentDir = path.join(process.cwd(), 'app', 'content')
   // const contentPaths = await fs.readdir(contentDir)
 
-  const posts = await Promise.all(files.map(async file => {
-    const slugger = new GithubSlugger()
-
-    const filePath = path.join(contentDir, file.filename)
-    const content = await fs.readFile(filePath)
-    const bundle = await handleMdxBundle(content.toString())
-    const frontmatter = bundle.frontmatter
-    return {
-      path: filePath,
-      slug: slugger.slug(frontmatter.title),
-      frontmatter,
-    }
-  }))
+  const slugger = new GithubSlugger()
+  const posts = await Promise.all(
+    files.map(async file => {
+      const filePath = path.join(contentDir, file.filename)
+      const content = await fs.readFile(filePath)
+      const bundle = await handleMdxBundle(content.toString())
+      const frontmatter = bundle.frontmatter
+      return {
+        path: filePath,
+        slug: slugger.slug(frontmatter.title),
+        frontmatter,
+      }
+    }))
 
   return posts
 }
