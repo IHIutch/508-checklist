@@ -20,7 +20,6 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
   const posts = await getPosts()
   console.timeEnd('getPosts1')
 
-
   const post = posts.find(c => c.slug === params.slug)
   if (!post) {
     throw new Response("Not Found", { status: 404 });
