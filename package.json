@@ -22,6 +22,7 @@
     "cva": "1.0.0-beta.1",
     "eslint-plugin-mdx": "^2.3.2",
     "github-slugger": "^2.0.0",
+    "gray-matter": "^4.0.3",
     "isbot": "^3.6.8",
     "lucide-react": "^0.304.0",
     "mdx-bundler": "^10.0.1",
