@@ -6,23 +6,6 @@ import matter from 'gray-matter'
 
 const contentDir = path.join(process.cwd(), 'app', 'content')
 
-export const handleMdxBundle = async ({ filePath, cwd }: { filePath: string, cwd: string }) => {
-  return await bundleMDX({
-    file: filePath,
-    cwd,
-    mdxOptions(options, frontmatter) {
-      // this is the recommended way to add custom remark/rehype plugins:
-      // The syntax might look weird, but it protects you in case we add/remove
-      // plugins in the future.
-
-      // options.remarkPlugins = [...(options.remarkPlugins ?? []), myRemarkPlugin]
-      // options.rehypePlugins = [...(options.rehypePlugins ?? []), myRehypePlugin]
-
-      return options
-    },
-  })
-}
-
 export const getPosts = async () => {
   const files = await fs.readdir(contentDir)
 
@@ -37,9 +20,22 @@ export const getPosts = async () => {
     }
   })
 
-  return posts.sort((a, b) => (a.frontmatter.order || 1000) - (b.frontmatter.order || 1000))
+  return posts.sort((a, b) => (a.frontmatter?.order || 1000) - (b.frontmatter?.order || 1000))
 }
 
 export const getPost = async (filePath: string) => {
-  return await handleMdxBundle({ filePath, cwd: contentDir })
+  return await bundleMDX({
+    file: filePath,
+    cwd: contentDir,
+    mdxOptions(options, frontmatter) {
+      // this is the recommended way to add custom remark/rehype plugins:
+      // The syntax might look weird, but it protects you in case we add/remove
+      // plugins in the future.
+
+      // options.remarkPlugins = [...(options.remarkPlugins ?? []), myRemarkPlugin]
+      // options.rehypePlugins = [...(options.rehypePlugins ?? []), myRehypePlugin]
+
+      return options
+    },
+  })
 }
