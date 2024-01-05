@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { Await, defer, json, redirect, useFetcher, useLoaderData } from "@remix-run/react";
+import { Await, Link, defer, json, redirect, useFetcher, useLoaderData, useNavigate, useParams } from "@remix-run/react";
 import { getMDXComponent } from 'mdx-bundler/client/index.js'
 import * as React from 'react'
 import invariant from "tiny-invariant";
@@ -20,6 +20,7 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
   const posts = await getPosts()
   console.timeEnd('getPosts1')
 
+
   const post = posts.find(c => c.slug === params.slug)
   if (!post) {
     throw new Response("Not Found", { status: 404 });
@@ -35,11 +36,15 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
       id: 'desc',
     },
   })
+
   const tests = await prisma.test.findMany()
-
-
   const startingSlug = params.slug.split('-')[0]
   return defer({
+    links: posts.map((p) => ({
+      title: String(p?.frontmatter?.title || ''),
+      order: Number(p?.frontmatter?.order || 1000),
+      slug: p.slug
+    })),
     mdxString: postContentPromise,
     results,
     tests: tests.filter(test => {
@@ -54,23 +59,47 @@ export default function TestPage() {
   const { mdxString, results, tests } = useLoaderData<typeof loader>();
 
   return (
-    <div className="flex">
-      <React.Suspense fallback={<div>Loading...</div>}>
-        <Await resolve={mdxString}>
-          {(mdxString) => <TestContent mdxString={mdxString.code} />}
-        </Await>
-      </React.Suspense>
+    <TestLayout>
+      <div className="flex">
+        <React.Suspense fallback={<div>Loading...</div>}>
+          <Await resolve={mdxString}>
+            {(mdxString) => <TestContent mdxString={mdxString.code} />}
+          </Await>
+        </React.Suspense>
 
-      <div className="grow px-4 space-y-8">
-        {tests.length > 0 ?
-          tests.map((test) => (
-            <div className="p-4 rounded border w-full" key={test.id}>
-              <TestForm test={test} results={results} />
-            </div>
-          )) : null}
+        <div className="grow px-4 space-y-8">
+          {tests.length > 0 ?
+            tests.map((test) => (
+              <div className="p-4 rounded border w-full" key={test.id}>
+                <TestForm test={test} results={results} />
+              </div>
+            )) : null}
+        </div>
+      </div>
+    </TestLayout>
+  );
+}
+
+const TestLayout = ({ children }: { children: React.ReactNode }) => {
+  const { links } = useLoaderData<typeof loader>();
+  const params = useParams()
+
+  return (<div>
+    <div className="w-80 fixed inset-y-0 left-0">
+      <div className="h-full pt-20 overflow-y-auto">
+        <ul className='px-4 pb-8'>
+          {links.map((link) => (
+            <li key={link.title}>
+              <Link to={`/projects/${params.projectId}/${params.pageId}/test/${link.slug}`} className="block text-blue-500 underline p-2">{link.title}</Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
-  );
+    <div className='pl-80 pt-20'>
+      {children}
+    </div>
+  </div>)
 }
 
 const TestContent = ({ mdxString }: { mdxString: string }) => {
