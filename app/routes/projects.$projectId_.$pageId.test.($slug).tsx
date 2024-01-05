@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { json, redirect, useFetcher, useLoaderData } from "@remix-run/react";
+import { Await, defer, json, redirect, useFetcher, useLoaderData } from "@remix-run/react";
 import { getMDXComponent } from 'mdx-bundler/client/index.js'
 import * as React from 'react'
 import invariant from "tiny-invariant";
@@ -23,24 +23,22 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     throw new Response("Not Found", { status: 404 });
   }
 
-  const [postContent, results, tests] = await Promise.all([
-    getPost(post.path),
-    prisma.result.findMany({
-      where: {
-        pageId: Number(params.pageId)
-      },
-      distinct: 'testId',
-      orderBy: {
-        id: 'desc',
-      },
-    }),
-    prisma.test.findMany()
-  ])
+  const postContentPromise = getPost(post.path)
+  const results = await prisma.result.findMany({
+    where: {
+      pageId: Number(params.pageId)
+    },
+    distinct: 'testId',
+    orderBy: {
+      id: 'desc',
+    },
+  })
+  const tests = await prisma.test.findMany()
 
 
   const startingSlug = params.slug.split('-')[0]
-  return json({
-    mdxString: postContent.code,
+  return defer({
+    mdxString: postContentPromise,
     results,
     tests: tests.filter(test => {
       const startingName = test.name.split('.')[0]
@@ -52,13 +50,15 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 export default function TestPage() {
 
   const { mdxString, results, tests } = useLoaderData<typeof loader>();
-  const Component = React.useMemo(() => getMDXComponent(mdxString), [mdxString])
 
   return (
     <div className="flex">
-      <div className="max-w-prose prose lg:prose-lg">
-        <Component />
-      </div>
+      <React.Suspense fallback={<div>Loading...</div>}>
+        <Await resolve={mdxString}>
+          {(mdxString) => <TestContent mdxString={mdxString.code} />}
+        </Await>
+      </React.Suspense>
+
       <div className="grow px-4 space-y-8">
         {tests.length > 0 ?
           tests.map((test) => (
@@ -69,6 +69,15 @@ export default function TestPage() {
       </div>
     </div>
   );
+}
+
+const TestContent = ({ mdxString }: { mdxString: string }) => {
+  const Component = React.useMemo(() => getMDXComponent(mdxString), [mdxString])
+
+  return (
+    <div className="max-w-prose prose lg:prose-lg">
+      <Component />
+    </div>)
 }
 
 const TestForm = ({ test, results }: { test: Test, results: Result[] }) => {
